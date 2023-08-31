@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from pytils.translit import slugify
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
@@ -80,7 +81,7 @@ class TestNoteEditDeleteSlug(TestCase):
             'title': cls.NOTE_TITLE,
             'text': cls.NEW_NOTE_TEXT,
             'slug': cls.SLUG
-            }
+            }    
         cls.edit_url = reverse('notes:edit', kwargs={'slug': cls.SLUG})
         cls.delete_url = reverse('notes:delete', kwargs={'slug': cls.SLUG})
 
@@ -129,3 +130,15 @@ class TestNoteEditDeleteSlug(TestCase):
         )
         notes_count = Note.objects.count()
         self.assertEqual(notes_count, 1)
+
+    def test_no_slug_auto_create(self):
+        self.create_form_data.pop('slug')
+        expected_slug = slugify(self.create_form_data['title'])
+        
+        response = self.auth_client2.post(
+            reverse('notes:add'),
+            data=self.create_form_data
+            )
+        self.assertRedirects(response, reverse('notes:success'))
+        note = Note.objects.get(slug=expected_slug)
+        self.assertIsInstance(note, Note)
